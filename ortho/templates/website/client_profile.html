@@ -1,0 +1,112 @@
+{% extends "website/base.html" %}
+
+{% block head %}
+<title>{{ client.username }}'s Profile</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock head %}
+
+{% block content %}
+<h1>{{ client.username }}'s Profile</h1>
+<p>Email: {{ client.email }}</p>
+
+<!-- Charts -->
+<canvas id="lineChart" width="400" height="200"></canvas>
+<canvas id="barChart" width="400" height="200" style="display:none;"></canvas>
+
+<!-- Buttons -->
+<div class="mt-4 space-x-3">
+  <button id="backToLineChart"
+          onclick="showLineChart()"
+          class="hidden px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition">
+      Back to Line Chart
+  </button>
+
+  {% if user.is_staff or user.is_superuser %}
+      <!-- Show this button only for admin/staff -->
+      <a id="backToClientList"
+         href="{% url 'client_list' %}"
+         class="inline-block px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
+          Back to Client List
+      </a>
+  {% else %}
+      <!-- Regular users see this instead -->
+      <a id="backToProfile"
+         href="{% url 'client_profile' user.id %}"
+         class="inline-block px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition">
+          Back to My Profile
+      </a>
+  {% endif %}
+</div>
+
+<script>
+    const graphData = {{ graph_data|safe }};
+    const labels = Array.from({ length: graphData.length }, (_, i) => `Label ${i + 1}`);
+    const barLabels = ['Metric A', 'Metric B', 'Metric C'];
+    const barDataSet = {{ bar_data_set|safe }};
+
+    const ctxLine = document.getElementById('lineChart').getContext('2d');
+    const lineChart = new Chart(ctxLine, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '{{ client.username }} Data',
+                data: graphData,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                fill: false,
+                tension: 0.1
+            }]
+        },
+        options: {
+            scales: { y: { beginAtZero: true } },
+            onClick: (event) => {
+                const points = lineChart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+                if (points.length) {
+                    const pointIndex = points[0].index;
+                    showBarChart(pointIndex);
+                }
+            }
+        }
+    });
+
+    function showBarChart(clickedIndex) {
+        document.getElementById('lineChart').style.display = 'none';
+        document.getElementById('barChart').style.display = 'block';
+
+        document.getElementById('backToLineChart').classList.remove('hidden');
+
+        const adminButton = document.getElementById('backToClientList');
+        const userButton = document.getElementById('backToProfile');
+        if (adminButton) adminButton.classList.add('hidden');
+        if (userButton) userButton.classList.add('hidden');
+
+        const ctxBar = document.getElementById('barChart').getContext('2d');
+        new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: barLabels,
+                datasets: [{
+                    label: 'Metrics for ' + labels[clickedIndex],
+                    data: barDataSet[clickedIndex],
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: { scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    function showLineChart() {
+        document.getElementById('barChart').style.display = 'none';
+        document.getElementById('lineChart').style.display = 'block';
+        document.getElementById('backToLineChart').classList.add('hidden');
+
+        const adminButton = document.getElementById('backToClientList');
+        const userButton = document.getElementById('backToProfile');
+        if (adminButton) adminButton.classList.remove('hidden');
+        if (userButton) userButton.classList.remove('hidden');
+    }
+</script>
+
+{% endblock content %}
