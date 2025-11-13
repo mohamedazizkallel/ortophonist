@@ -26,6 +26,9 @@
                 <li>
                     <a href="{% url 'client_profile' user.id %}" class="text-gray-900 dark:text-white hover:underline"> Profile</a>
                 </li>
+                <li>
+                    <a href="{% url 'calendar' %}" class="text-gray-900 dark:text-white hover:underline"> calendar</a>
+                </li>
                 {% else %}
                 <li>
                     <a href="{% url 'account_login' %}" class="text-gray-900 dark:text-white hover:underline">login</a>

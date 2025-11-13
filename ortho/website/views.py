@@ -8,6 +8,7 @@ import random
 
 
 
+
 def home_view(request):
     return render(request,'website/home.html')
 

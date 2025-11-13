@@ -7,4 +7,5 @@ urlpatterns = [
     path('clients/', client_list_view, name='client_list'), 
     path('clients/profile/', client_profile_view, name='client_profile_self'),  # For own profile
     path('clients/profile/<int:user_id>/', client_profile_view, name='client_profile'),  # For staff/admin
+    
 ]

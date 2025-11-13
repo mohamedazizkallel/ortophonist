@@ -22,4 +22,5 @@ urlpatterns = [
     path('', include('website.urls')),
     path('', include('auth.urls')),
     path('accounts/', include('allauth.urls')),
+    path('calendar/', include('appointments.urls')),
 ]

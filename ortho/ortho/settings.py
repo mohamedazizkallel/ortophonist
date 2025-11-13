@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     "widget_tweaks",
     "slippers", 
+    "appointments",
 
 ]
 # settings.py
