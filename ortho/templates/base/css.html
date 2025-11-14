@@ -1,2 +1,14 @@
 {% load static %}
+
+<!-- Tailwind CSS (required by Flowbite) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    corePlugins: {
+      preflight: false, // Don't reset Bootstrap/other framework styles
+    }
+  }
+</script>
+
+<!-- Flowbite CSS -->
 <link href="{% static 'flowbite.min.css' %}" rel="stylesheet" />

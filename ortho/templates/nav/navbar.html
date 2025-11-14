@@ -1,44 +1,55 @@
-<nav class="bg-white border-gray-200 dark:bg-gray-900">
-    <div class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl p-4">
-        <a href="/" class="flex items-center space-x-3 rtl:space-x-reverse">
-            <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">ortho</span>
-        </a>
-        <div class="flex items-center space-x-6 rtl:space-x-reverse">
-            <a href="tel:5541251234" class="text-sm  text-gray-500 dark:text-white hover:underline">(555) 412-1234</a>
-            <a href="#" class="text-sm  text-blue-600 dark:text-blue-500 hover:underline">Login</a>
-        </div>
-    </div>
-</nav>
-<nav class="bg-gray-50 dark:bg-gray-700">
-    <div class="max-w-screen-xl px-4 py-3 mx-auto">
-        <div class="flex items-center">
-            <ul class="flex flex-row font-medium mt-0 space-x-8 rtl:space-x-reverse text-sm">
-                <li>
-                    <a href="{% url 'home' %}" class="text-gray-900 dark:text-white hover:underline" aria-current="page">Home</a>
-                </li>
+<!-- Top bar: phone & login info -->
+<nav class="bg-white border-b border-gray-200 dark:bg-gray-900">
+  <div class="flex justify-between items-center max-w-screen-xl mx-auto px-4 py-2">
+    <!-- Logo / brand -->
+    <a href="/" class="flex items-center space-x-3 rtl:space-x-reverse">
+      <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">ortho</span>
+    </a>
 
-                {% if request.user.is_authenticated %}
-                <li>
-                    <a href="{% url 'account_logout' %}" class="text-gray-900 dark:text-white hover:underline">login out</a>
-                </li>
-                <li>
-                    <a href="{% url 'client_profile' user.id %}" class="text-gray-900 dark:text-white hover:underline"> Profile</a>
-                </li>
-                <li>
-                    <a href="{% url 'calendar' %}" class="text-gray-900 dark:text-white hover:underline"> calendar</a>
-                </li>
-                {% else %}
-                <li>
-                    <a href="{% url 'account_login' %}" class="text-gray-900 dark:text-white hover:underline">login</a>
-                </li>
-                <li>
-                    <a href="{% url 'account_signup' %}" class="text-gray-900 dark:text-white hover:underline">sign-up</a>
-                </li>
-                {% endif %}
-                <li>
-                    <a href="#" class="text-gray-900 dark:text-white hover:underline">About</a>
-                </li>
-            </ul>
-        </div>
+    <!-- Contact & auth links -->
+    <div class="flex items-center space-x-6 rtl:space-x-reverse text-sm">
+      <a href="tel:5541251234" class="text-gray-500 dark:text-white hover:underline">(555) 412-1234</a>
+      {% if request.user.is_authenticated %}
+        <a href="{% url 'account_logout' %}" class="text-blue-600 dark:text-blue-500 hover:underline">Logout</a>
+      {% else %}
+        <a href="{% url 'account_login' %}" class="text-blue-600 dark:text-blue-500 hover:underline">Login</a>
+      {% endif %}
     </div>
+  </div>
+</nav>
+
+<!-- Main nav: page links -->
+<nav class="bg-gray-50 dark:bg-gray-700">
+  <div class="max-w-screen-xl px-4 py-3 mx-auto">
+    <div class="flex items-center">
+      <ul class="flex flex-row text-sm font-medium">
+        <!-- Home -->
+        <li class="mr-4">
+          <a href="{% url 'home' %}" class="text-gray-900 dark:text-white hover:underline" aria-current="page">Home</a>
+        </li>
+
+        {% if request.user.is_authenticated %}
+          <!-- Profile -->
+          <li class="mr-4">
+            <a href="{% url 'client_profile' user.id %}" class="text-gray-900 dark:text-white hover:underline">Profile</a>
+          </li>
+
+          <!-- Calendar -->
+          <li class="mr-4">
+            <a href="{% url 'calendar' %}" class="text-gray-900 dark:text-white hover:underline">Calendar</a>
+          </li>
+        {% else %}
+          <!-- Sign Up -->
+          <li class="mr-4">
+            <a href="{% url 'account_signup' %}" class="text-gray-900 dark:text-white hover:underline">Sign Up</a>
+          </li>
+        {% endif %}
+
+        <!-- About -->
+        <li>
+          <a href="#" class="text-gray-900 dark:text-white hover:underline">About</a>
+        </li>
+      </ul>
+    </div>
+  </div>
 </nav>
