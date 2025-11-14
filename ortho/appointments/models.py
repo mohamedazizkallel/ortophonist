@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from datetime import datetime
 
 class Event(models.Model):
     id = models.AutoField(primary_key=True)
@@ -17,3 +18,9 @@ class Event(models.Model):
 
     def __str__(self):
         return f"{self.name} ({'Approved' if self.is_approved else 'Pending'})"
+    
+class Availability(models.Model):
+    weekday = models.IntegerField(choices=[(i, datetime.strftime(datetime.strptime(str(i), "%w"), "%A")) for i in range(7)])
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
