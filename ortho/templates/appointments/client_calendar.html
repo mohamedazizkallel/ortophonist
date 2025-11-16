@@ -16,14 +16,17 @@
 
   <!-- Flowbite CSS -->
   <link href="{% static 'flowbite.min.css' %}" rel="stylesheet" />
-
 {% endblock head %}
 
 {% block content %}
 
 <div class="max-w-5xl mx-auto py-6 px-4">
   <h3 class="text-center text-2xl font-semibold mb-6 text-gray-800">
-    My Appointment Requests
+    {% if user.is_authenticated %}
+      {{ user.get_full_name|default:user.username }}'s Appointment Requests
+    {% else %}
+      My Appointment Requests
+    {% endif %}
   </h3>
 
   <!-- Legend -->
@@ -208,6 +211,46 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => { alertEl.classList.add('hidden'); }, 4000);
   }
 
+  // Toast notification system
+  function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500';
+    const icon = type === 'success' 
+      ? '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>'
+      : '<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>';
+    
+    toast.className = `fixed top-4 right-4 z-50 ${bgColor} text-white px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out flex items-center space-x-3 max-w-md`;
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-20px)';
+    
+    toast.innerHTML = `
+      <svg class="w-6 h-6 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        ${icon}
+      </svg>
+      <p class="font-medium">${message}</p>
+      <button class="ml-4 text-white hover:text-gray-200 focus:outline-none" onclick="this.parentElement.remove()">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+    }, 10);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(-20px)';
+      setTimeout(() => toast.remove(), 300);
+    }, 5000);
+  }
+
   // ----------------------
   // Modal & form elements
   // ----------------------
@@ -269,6 +312,11 @@ document.addEventListener('DOMContentLoaded', function() {
     clearValidation();
     eventForm.reset();
 
+    // Pre-fill title with user's name
+    {% if user.is_authenticated %}
+    titleInput.value = "{{ user.get_full_name|default:user.username }}";
+    {% endif %}
+
     if (prefillStartIso) {
       const d = new Date(prefillStartIso);
       const yyyy = d.getFullYear();
@@ -305,20 +353,81 @@ document.addEventListener('DOMContentLoaded', function() {
       center: 'title',
       right: 'dayGridMonth,timeGridWeek,timeGridDay'
     },
+    slotMinTime: '07:00:00',  // Start at 7 AM
+    slotMaxTime: '19:00:00',  // End at 7 PM
+    allDaySlot: false,        // Hide all-day row
     selectable: true,
     selectMirror: true,
-    businessHours: true,
+    selectConstraint: {
+      start: '07:00',
+      end: '19:00'
+    },
+    businessHours: {
+      daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+      startTime: '07:00',
+      endTime: '19:00'
+    },
     height: 'auto',
     events: '/calendar/events/all/',
+    
+    // Custom event rendering based on user permissions
+    eventDidMount: function(info) {
+      const isStaffOrAdmin = {{ user.is_staff|yesno:"true,false" }} || {{ user.is_superuser|yesno:"true,false" }};
+      
+      if (!isStaffOrAdmin) {
+        // For regular users, only show that time slot is taken
+        info.el.querySelector('.fc-event-title').textContent = 'Booked';
+        info.el.style.cursor = 'not-allowed';
+      }
+    },
+    
     select: function(info) {
       openAddModal(info.startStr, info.endStr || info.startStr);
     },
+    
     eventClick: function(info) {
       const ev = info.event;
-      const approved = ev.extendedProps.isApproved;
-      const status = approved ? 'Approved' : 'Pending';
-      const desc = ev.extendedProps.description || '';
-      alert(`${ev.title}\n\n${status}\n\n${desc}\n\n${ev.start.toLocaleString()} → ${ev.end ? ev.end.toLocaleString() : ''}`);
+      const isStaffOrAdmin = {{ user.is_staff|yesno:"true,false" }} || {{ user.is_superuser|yesno:"true,false" }};
+      
+      if (isStaffOrAdmin) {
+        // Staff/Admin can see full details
+        const approved = ev.extendedProps.isApproved;
+        const status = approved ? 'Approved' : 'Pending';
+        const desc = ev.extendedProps.description || 'No description';
+        const creator = ev.extendedProps.createdBy || 'Unknown';
+        const startTime = ev.start.toLocaleString('en-US', { 
+          weekday: 'short', 
+          month: 'short', 
+          day: 'numeric', 
+          hour: 'numeric', 
+          minute: '2-digit' 
+        });
+        const endTime = ev.end ? ev.end.toLocaleString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit' 
+        }) : '';
+        
+        showToast(`<strong>${ev.title}</strong><br>
+                   Status: ${status}<br>
+                   Created by: ${creator}<br>
+                   ${desc}<br>
+                   ${startTime} - ${endTime}`, 'info');
+      } else {
+        // Regular users only see that it's booked
+        const startTime = ev.start.toLocaleString('en-US', { 
+          weekday: 'short', 
+          month: 'short', 
+          day: 'numeric', 
+          hour: 'numeric', 
+          minute: '2-digit' 
+        });
+        const endTime = ev.end ? ev.end.toLocaleString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit' 
+        }) : '';
+        
+        showToast(`This time slot is booked<br>${startTime} - ${endTime}`, 'info');
+      }
     }
   });
 
@@ -386,11 +495,36 @@ document.addEventListener('DOMContentLoaded', function() {
       });
 
       let data = null;
-      try { data = await res.json(); } catch(e) { /* ignore */ }
+      const contentType = res.headers.get('content-type');
+      
+      // Try to parse JSON response
+      if (contentType && contentType.includes('application/json')) {
+        try { 
+          data = await res.json(); 
+        } catch(e) { 
+          console.error('JSON parse error:', e);
+        }
+      }
 
       if (!res.ok) {
-        const msg = (data && data.message) ? data.message : `Server returned ${res.status}`;
-        showAlert('Error: ' + msg, 'danger');
+        // Extract error message from response
+        let errorMsg = 'An error occurred';
+        
+        if (data && data.message) {
+          errorMsg = data.message;
+        } else if (data && data.status === 'error') {
+          errorMsg = data.message || 'Request failed';
+        } else if (res.status === 409) {
+          errorMsg = data?.message || 'This time slot is already booked.';
+        } else if (res.status === 400) {
+          errorMsg = 'Invalid request. Please check your input.';
+        } else if (res.status === 403) {
+          errorMsg = 'You do not have permission to perform this action.';
+        } else {
+          errorMsg = `Server error (${res.status})`;
+        }
+        
+        showToast(errorMsg, 'error');
         console.error('Server error adding event:', data || res.statusText);
         return;
       }
@@ -398,11 +532,11 @@ document.addEventListener('DOMContentLoaded', function() {
       // Success
       closeModal();
       calendar.refetchEvents();
-      showAlert('Appointment request sent', 'success');
+      showToast('Appointment request sent successfully!', 'success');
 
     } catch (err) {
-      console.error('Fetch failed:', err);
-      showAlert('Could not contact server', 'danger');
+      console.error('Network error:', err);
+      showToast('Could not connect to server. Please check your connection.', 'error');
     }
   });
 });

@@ -10,7 +10,7 @@
   tailwind.config = { corePlugins: { preflight: false } };
 </script>
 
-<!-- Flowbite CSS (optional) -->
+<!-- Flowbite CSS -->
 <link href="{% static 'flowbite.min.css' %}" rel="stylesheet" />
 {% endblock head %}
 
@@ -18,7 +18,7 @@
 
 <div class="max-w-5xl mx-auto py-6 px-4">
   <h3 class="text-center text-2xl font-semibold mb-6 text-gray-800">
-    Clinic Appointment Calendar
+    Appointment Calendar (Admin)
   </h3>
 
   <!-- Legend -->
@@ -31,52 +31,350 @@
   <div id="calendar" class="bg-white shadow-lg rounded-lg p-4 border border-gray-200"></div>
 </div>
 
-<!-- Tailwind Modal -->
-<div id="eventModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-  <div class="flex items-center justify-center min-h-screen px-4 py-6 text-center">
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" id="modalBackdrop"></div>
-    <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-    <div class="inline-block align-bottom bg-white rounded-xl text-left shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
 
+<!-- Modal: Add New Appointment -->
+<div id="addEventModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="add-modal-title" role="dialog" aria-modal="true">
+  <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" id="addModalBackdrop"></div>
+
+    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+    <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+      
       <!-- Header -->
-      <div class="bg-gray-100 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-        <h3 class="text-lg font-semibold text-gray-900" id="modal-title">Event Details</h3>
-        <button type="button" id="closeModalBtn" class="text-gray-400 hover:text-gray-600">
-          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+      <div class="bg-gray-100 px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-gray-900" id="add-modal-title">
+            New Appointment
+          </h3>
+          <button type="button" id="closeAddModalBtn" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- Body -->
-      <div class="px-6 py-4 space-y-2">
-        <p><strong>Title:</strong> <span id="eventTitleText"></span></p>
-        <p><strong>Start:</strong> <span id="eventStart"></span></p>
-        <p><strong>End:</strong> <span id="eventEnd"></span></p>
-        <p><strong>Status:</strong> <span id="eventStatus"></span></p>
+      <div class="bg-white px-6 py-4">
+        <form id="addEventForm" class="space-y-4">
+
+          <!-- Assign to User -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="userSearch">
+              Assign to User <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+              <input
+                type="text"
+                id="userSearch"
+                placeholder="Search by name or username..."
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                autocomplete="off"
+              />
+              <!-- Dropdown results -->
+              <div id="userDropdown" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                <!-- User list will be populated here -->
+              </div>
+            </div>
+            <input type="hidden" id="selectedUserId" required>
+            <p class="mt-1 text-sm text-gray-500" id="selectedUserDisplay">No user selected</p>
+            <p class="mt-1 text-sm text-red-600 hidden" id="userError">Please select a user.</p>
+          </div>
+
+          <!-- Title -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="eventTitle">
+              Title <span class="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="eventTitle"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+            />
+            <p class="mt-1 text-sm text-red-600 hidden" id="titleError">Please enter a title.</p>
+          </div>
+
+          <!-- Description -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="eventDescription">
+              Description (optional)
+            </label>
+            <textarea
+              id="eventDescription"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            ></textarea>
+          </div>
+
+          <!-- Date & Time -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1" for="eventDate">
+                Date <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                id="eventDate"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+              <p class="mt-1 text-sm text-red-600 hidden" id="dateError">Select a date.</p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1" for="eventTime">
+                Start time <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="time"
+                id="eventTime"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+              <p class="mt-1 text-sm text-red-600 hidden" id="timeError">Select a start time.</p>
+            </div>
+          </div>
+
+          <!-- Duration -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="eventDuration">
+              Duration
+            </label>
+            <select
+              id="eventDuration"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="15">15 min</option>
+              <option value="30" selected>30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">60 min</option>
+              <option value="90">90 min</option>
+            </select>
+          </div>
+
+          <!-- Auto-approve checkbox -->
+          <div class="flex items-center">
+            <input
+              type="checkbox"
+              id="autoApprove"
+              checked
+              class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label for="autoApprove" class="ml-2 text-sm text-gray-700">
+              Auto-approve this appointment
+            </label>
+          </div>
+
+        </form>
       </div>
 
       <!-- Footer -->
       <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
-        <button id="approveBtn" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg">Approve</button>
-        <button id="deleteBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">Delete</button>
-        <button id="closeModalFooterBtn" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg">Close</button>
+        <button
+          type="button"
+          id="cancelAddModalBtn"
+          class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          id="saveAddEventBtn"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+        >
+          Create Appointment
+        </button>
       </div>
 
     </div>
   </div>
 </div>
 
-<!-- FullCalendar -->
+
+<!-- Modal: Event Details -->
+<div id="eventModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+  <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" id="modalBackdrop"></div>
+
+    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+    <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+      
+      <!-- Header -->
+      <div class="bg-gray-100 px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-gray-900" id="modal-title">
+            Event Details
+          </h3>
+          <button type="button" id="closeModalBtn" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="bg-white px-6 py-4 space-y-3">
+        <div>
+          <span class="text-sm font-medium text-gray-500">Title:</span>
+          <p class="text-gray-900 font-medium" id="eventTitleText"></p>
+        </div>
+        <div>
+          <span class="text-sm font-medium text-gray-500">Created by:</span>
+          <p class="text-gray-900" id="eventCreator"></p>
+        </div>
+        <div>
+          <span class="text-sm font-medium text-gray-500">Description:</span>
+          <p class="text-gray-900" id="eventDescription"></p>
+        </div>
+        <div>
+          <span class="text-sm font-medium text-gray-500">Start:</span>
+          <p class="text-gray-900" id="eventStart"></p>
+        </div>
+        <div>
+          <span class="text-sm font-medium text-gray-500">End:</span>
+          <p class="text-gray-900" id="eventEnd"></p>
+        </div>
+        <div>
+          <span class="text-sm font-medium text-gray-500">Status:</span>
+          <p id="eventStatus"></p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+        <button
+          type="button"
+          id="approveBtn"
+          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+        >
+          Approve
+        </button>
+        <button
+          type="button"
+          id="deleteBtn"
+          class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
+        >
+          Delete
+        </button>
+        <button
+          type="button"
+          id="closeModalFooterBtn"
+          class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors"
+        >
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- FullCalendar CSS & JS -->
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
+<!-- Flowbite JS -->
+<script src="{% static 'flowbite.min.js' %}"></script>
+
+<!-- Calendar Script -->
+{{ block.super }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const csrftoken = getCookie('csrftoken');
+  // ----------------------
+  // Helpers
+  // ----------------------
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
 
-  const calendarEl = document.getElementById('calendar');
-  const modalEl = document.getElementById('eventModal');
+  // Toast notification system
+  function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500';
+    const icon = type === 'success' 
+      ? '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>'
+      : '<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>';
+    
+    toast.className = `fixed top-4 right-4 z-50 ${bgColor} text-white px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out flex items-center space-x-3 max-w-md`;
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-20px)';
+    
+    toast.innerHTML = `
+      <svg class="w-6 h-6 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        ${icon}
+      </svg>
+      <p class="font-medium">${message}</p>
+      <button class="ml-4 text-white hover:text-gray-200 focus:outline-none" onclick="this.parentElement.remove()">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+    }, 10);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(-20px)';
+      setTimeout(() => toast.remove(), 300);
+    }, 5000);
+  }
+
+  // ----------------------
+  // Modal & elements
+  // ----------------------
+  const csrftoken = getCookie('csrftoken');
+  
+  // Add Event Modal
+  const addModal = document.getElementById('addEventModal');
+  const addModalBackdrop = document.getElementById('addModalBackdrop');
+  const closeAddModalBtn = document.getElementById('closeAddModalBtn');
+  const cancelAddModalBtn = document.getElementById('cancelAddModalBtn');
+  const saveAddEventBtn = document.getElementById('saveAddEventBtn');
+  const addEventForm = document.getElementById('addEventForm');
+  
+  const userSearch = document.getElementById('userSearch');
+  const userDropdown = document.getElementById('userDropdown');
+  const selectedUserId = document.getElementById('selectedUserId');
+  const selectedUserDisplay = document.getElementById('selectedUserDisplay');
+  const userError = document.getElementById('userError');
+  
+  const titleInput = document.getElementById('eventTitle');
+  const descInput = document.getElementById('eventDescription');
+  const dateInput = document.getElementById('eventDate');
+  const timeInput = document.getElementById('eventTime');
+  const durationSelect = document.getElementById('eventDuration');
+  const autoApprove = document.getElementById('autoApprove');
+  
+  const titleError = document.getElementById('titleError');
+  const dateError = document.getElementById('dateError');
+  const timeError = document.getElementById('timeError');
+
+  // Event Details Modal
+  const modal = document.getElementById('eventModal');
   const modalBackdrop = document.getElementById('modalBackdrop');
   const closeModalBtn = document.getElementById('closeModalBtn');
   const closeModalFooterBtn = document.getElementById('closeModalFooterBtn');
@@ -84,103 +382,434 @@ document.addEventListener('DOMContentLoaded', function() {
   const deleteBtn = document.getElementById('deleteBtn');
 
   const eventTitleText = document.getElementById('eventTitleText');
+  const eventCreator = document.getElementById('eventCreator');
+  const eventDescription = document.getElementById('eventDescription');
   const eventStart = document.getElementById('eventStart');
   const eventEnd = document.getElementById('eventEnd');
   const eventStatus = document.getElementById('eventStatus');
 
   let currentEventId = null;
+  let allUsers = [];
+  let prefillStart = null;
+  let prefillEnd = null;
 
+  // Fetch users list
+  async function fetchUsers() {
+    try {
+      const res = await fetch('/calendar/users/', {
+        headers: { 'X-CSRFToken': csrftoken }
+      });
+      if (res.ok) {
+        allUsers = await res.json();
+      }
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+    }
+  }
+
+  fetchUsers(); // Load users on page load
+
+  // User search functionality
+  userSearch.addEventListener('input', function() {
+    const query = this.value.toLowerCase().trim();
+    
+    if (query.length === 0) {
+      userDropdown.classList.add('hidden');
+      return;
+    }
+
+    const filtered = allUsers.filter(u => 
+      u.full_name.toLowerCase().includes(query) || 
+      u.username.toLowerCase().includes(query)
+    );
+
+    if (filtered.length === 0) {
+      userDropdown.innerHTML = '<div class="px-4 py-2 text-gray-500">No users found</div>';
+      userDropdown.classList.remove('hidden');
+      return;
+    }
+
+    userDropdown.innerHTML = filtered.map(u => `
+      <div class="px-4 py-2 hover:bg-gray-100 cursor-pointer user-option" data-id="${u.id}" data-name="${u.full_name}">
+        <div class="font-medium text-gray-900">${u.full_name}</div>
+        <div class="text-sm text-gray-500">@${u.username}</div>
+      </div>
+    `).join('');
+
+    userDropdown.classList.remove('hidden');
+
+    // Add click handlers
+    document.querySelectorAll('.user-option').forEach(opt => {
+      opt.addEventListener('click', function() {
+        selectedUserId.value = this.dataset.id;
+        selectedUserDisplay.textContent = `Selected: ${this.dataset.name}`;
+        selectedUserDisplay.classList.remove('text-gray-500');
+        selectedUserDisplay.classList.add('text-green-600', 'font-medium');
+        userSearch.value = this.dataset.name;
+        userDropdown.classList.add('hidden');
+        userError.classList.add('hidden');
+      });
+    });
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!userSearch.contains(e.target) && !userDropdown.contains(e.target)) {
+      userDropdown.classList.add('hidden');
+    }
+  });
+
+  // Add Modal functions
+  function openAddModal() {
+    addModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeAddModal() {
+    addModal.classList.add('hidden');
+    document.body.style.overflow = 'auto';
+    clearAddValidation();
+    addEventForm.reset();
+    selectedUserId.value = '';
+    selectedUserDisplay.textContent = 'No user selected';
+    selectedUserDisplay.classList.remove('text-green-600', 'font-medium');
+    selectedUserDisplay.classList.add('text-gray-500');
+    userSearch.value = '';
+    prefillStart = null;
+    prefillEnd = null;
+  }
+
+  function clearAddValidation() {
+    userError.classList.add('hidden');
+    titleError.classList.add('hidden');
+    dateError.classList.add('hidden');
+    timeError.classList.add('hidden');
+    titleInput.classList.remove('border-red-500');
+    dateInput.classList.remove('border-red-500');
+    timeInput.classList.remove('border-red-500');
+    userSearch.classList.remove('border-red-500');
+  }
+
+  addModalBackdrop.addEventListener('click', closeAddModal);
+  closeAddModalBtn.addEventListener('click', closeAddModal);
+  cancelAddModalBtn.addEventListener('click', closeAddModal);
+
+  // Event Details Modal functions
   function openModal() {
-    modalEl.classList.remove('hidden');
+    modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
   }
 
   function closeModal() {
-    modalEl.classList.add('hidden');
+    modal.classList.add('hidden');
     document.body.style.overflow = 'auto';
+    currentEventId = null;
   }
 
   modalBackdrop.addEventListener('click', closeModal);
   closeModalBtn.addEventListener('click', closeModal);
   closeModalFooterBtn.addEventListener('click', closeModal);
-  document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
 
+  // ESC key to close modals
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (!addModal.classList.contains('hidden')) closeAddModal();
+      if (!modal.classList.contains('hidden')) closeModal();
+    }
+  });
+
+  // ----------------------
+  // Initialize FullCalendar
+  // ----------------------
+  const calendarEl = document.getElementById('calendar');
   const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'timeGridWeek',
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,timeGridWeek,timeGridDay'
+    },
+    slotMinTime: '07:00:00',
+    slotMaxTime: '19:00:00',
+    allDaySlot: false,
     selectable: true,
+    selectMirror: true,
     editable: true,
+    selectConstraint: {
+      start: '07:00',
+      end: '19:00'
+    },
+    businessHours: {
+      daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+      startTime: '07:00',
+      endTime: '19:00'
+    },
     height: 'auto',
     events: '/calendar/events/all/',
 
-    select(info) {
-      const title = prompt('Add appointment title:');
-      if (title) {
-        fetch('/calendar/events/all/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrftoken
-          },
-          body: JSON.stringify({ title, start: info.startStr, end: info.endStr })
-        }).then(r => r.ok && calendar.refetchEvents());
-      }
+    select: function(info) {
+      prefillStart = info.startStr;
+      prefillEnd = info.endStr;
+      
+      // Prefill date and time
+      const d = new Date(info.startStr);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      dateInput.value = `${yyyy}-${mm}-${dd}`;
+
+      const hh = String(d.getHours()).padStart(2,'0');
+      const mi = String(d.getMinutes()).padStart(2,'0');
+      timeInput.value = `${hh}:${mi}`;
+
+      // Calculate duration
+      const s = new Date(info.startStr);
+      const e = new Date(info.endStr);
+      const minutes = Math.round((e - s) / 60000);
+      const opt = Array.from(durationSelect.options).find(o => parseInt(o.value) === minutes);
+      if (opt) durationSelect.value = opt.value;
+
+      openAddModal();
     },
 
-    eventClick(info) {
+    eventClick: function(info) {
       currentEventId = info.event.id;
-      const isPending = info.event.backgroundColor === '#ffc107';
+      const isPending = !info.event.extendedProps.isApproved;
 
       eventTitleText.textContent = info.event.title;
-      eventStart.textContent = new Date(info.event.start).toLocaleString();
-      eventEnd.textContent = new Date(info.event.end).toLocaleString();
+      eventCreator.textContent = info.event.extendedProps.createdBy || 'Unknown';
+      eventDescription.textContent = info.event.extendedProps.description || 'No description';
+      eventStart.textContent = info.event.start.toLocaleString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric',
+        hour: 'numeric', 
+        minute: '2-digit' 
+      });
+      eventEnd.textContent = info.event.end ? info.event.end.toLocaleString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric',
+        hour: 'numeric', 
+        minute: '2-digit' 
+      }) : 'N/A';
+
       eventStatus.innerHTML = isPending
-        ? '<span class="px-2 py-1 bg-yellow-400 text-black rounded text-sm">Pending</span>'
-        : '<span class="px-2 py-1 bg-green-600 text-white rounded text-sm">Approved</span>';
+        ? '<span class="px-3 py-1 rounded-full bg-yellow-400 text-black text-sm font-medium">Pending</span>'
+        : '<span class="px-3 py-1 rounded-full bg-green-600 text-white text-sm font-medium">Approved</span>';
 
       approveBtn.style.display = isPending ? 'inline-block' : 'none';
       openModal();
     },
 
-    eventDrop(info) { updateEvent(info.event); },
-    eventResize(info) { updateEvent(info.event); }
+    eventDrop: function(info) {
+      updateEvent(info.event);
+    },
+
+    eventResize: function(info) {
+      updateEvent(info.event);
+    }
   });
 
   calendar.render();
 
-  approveBtn.addEventListener('click', () => {
-    fetch(`/calendar/events/approve/${currentEventId}/`, { method: 'PATCH', headers: { 'X-CSRFToken': csrftoken }})
-    .then(r => r.ok && (closeModal(), calendar.refetchEvents()));
+  // ----------------------
+  // Save new appointment
+  // ----------------------
+  saveAddEventBtn.addEventListener('click', async () => {
+    clearAddValidation();
+    let hasError = false;
+
+    // Validate user selection
+    if (!selectedUserId.value) {
+      userError.classList.remove('hidden');
+      userSearch.classList.add('border-red-500');
+      hasError = true;
+    }
+
+    // Validate title
+    if (!titleInput.value.trim()) {
+      titleError.classList.remove('hidden');
+      titleInput.classList.add('border-red-500');
+      hasError = true;
+    }
+
+    // Validate date
+    if (!dateInput.value) {
+      dateError.classList.remove('hidden');
+      dateInput.classList.add('border-red-500');
+      hasError = true;
+    }
+
+    // Validate time
+    if (!timeInput.value) {
+      timeError.classList.remove('hidden');
+      timeInput.classList.add('border-red-500');
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    // Assemble ISO strings
+    const date = dateInput.value;
+    const time = timeInput.value;
+    const duration = parseInt(durationSelect.value, 10);
+
+    const startLocal = new Date(`${date}T${time}`);
+    if (isNaN(startLocal.getTime())) {
+      showToast('Invalid start date/time', 'error');
+      return;
+    }
+    const endLocal = new Date(startLocal.getTime() + duration * 60000);
+
+    const payload = {
+      title: titleInput.value.trim(),
+      description: descInput.value.trim(),
+      start: startLocal.toISOString(),
+      end: endLocal.toISOString(),
+      user_id: selectedUserId.value,
+      auto_approve: autoApprove.checked
+    };
+
+    // Send to server
+    try {
+      const res = await fetch('/calendar/events/all/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify(payload)
+      });
+
+      let data = null;
+      const contentType = res.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        try { 
+          data = await res.json(); 
+        } catch(e) { 
+          console.error('JSON parse error:', e);
+        }
+      }
+
+      if (!res.ok) {
+        let errorMsg = 'An error occurred';
+        
+        if (data && data.message) {
+          errorMsg = data.message;
+        } else if (data && data.status === 'error') {
+          errorMsg = data.message || 'Request failed';
+        } else if (res.status === 409) {
+          errorMsg = data?.message || 'This time slot is already booked.';
+        } else if (res.status === 400) {
+          errorMsg = 'Invalid request. Please check your input.';
+        } else if (res.status === 403) {
+          errorMsg = 'You do not have permission to perform this action.';
+        } else {
+          errorMsg = `Server error (${res.status})`;
+        }
+        
+        showToast(errorMsg, 'error');
+        console.error('Server error adding event:', data || res.statusText);
+        return;
+      }
+
+      // Success
+      closeAddModal();
+      calendar.refetchEvents();
+      showToast('Appointment created successfully!', 'success');
+
+    } catch (err) {
+      console.error('Network error:', err);
+      showToast('Could not connect to server. Please check your connection.', 'error');
+    }
   });
 
-  deleteBtn.addEventListener('click', () => {
-    if (!confirm('Are you sure you want to delete this event?')) return;
-    fetch(`/calendar/events/delete/${currentEventId}/`, { method: 'DELETE', headers: { 'X-CSRFToken': csrftoken }})
-    .then(r => r.ok && (closeModal(), calendar.refetchEvents()));
+  // ----------------------
+  // Approve event
+  // ----------------------
+  approveBtn.addEventListener('click', async () => {
+    try {
+      const res = await fetch(`/calendar/events/approve/${currentEventId}/`, {
+        method: 'PATCH',
+        headers: { 'X-CSRFToken': csrftoken }
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        const msg = data?.message || 'Failed to approve appointment';
+        showToast(msg, 'error');
+      } else {
+        closeModal();
+        calendar.refetchEvents();
+        showToast('Appointment approved successfully!', 'success');
+      }
+    } catch (err) {
+      console.error('Network error:', err);
+      showToast('Could not connect to server', 'error');
+    }
   });
 
+  // ----------------------
+  // Delete event
+  // ----------------------
+  deleteBtn.addEventListener('click', async () => {
+    if (!confirm('Are you sure you want to delete this appointment?')) return;
+
+    try {
+      const res = await fetch(`/calendar/events/delete/${currentEventId}/`, {
+        method: 'DELETE',
+        headers: { 'X-CSRFToken': csrftoken }
+      });
+
+      if (!res.ok) {
+        showToast('Failed to delete appointment', 'error');
+      } else {
+        closeModal();
+        calendar.refetchEvents();
+        showToast('Appointment deleted successfully!', 'success');
+      }
+    } catch (err) {
+      console.error('Network error:', err);
+      showToast('Could not connect to server', 'error');
+    }
+  });
+
+  // ----------------------
+  // Update event (drag/drop/resize)
+  // ----------------------
   function updateEvent(event) {
     fetch(`/calendar/events/update/${event.id}/`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrftoken
+      },
       body: JSON.stringify({
         title: event.title,
         start: event.start.toISOString(),
         end: event.end ? event.end.toISOString() : event.start.toISOString()
       })
-    }).then(r => r.ok && console.log('Event updated'));
-  }
-
-  function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-      document.cookie.split(';').forEach(cookie => {
-        cookie = cookie.trim();
-        if (cookie.startsWith(name + '=')) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        }
-      });
-    }
-    return cookieValue;
+    })
+    .then(async res => {
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = data?.error || 'Failed to update appointment';
+        showToast(msg, 'error');
+        calendar.refetchEvents(); // Revert on error
+      } else {
+        showToast('Appointment updated successfully!', 'success');
+      }
+    })
+    .catch(err => {
+      console.error('Network error:', err);
+      showToast('Could not connect to server', 'error');
+      calendar.refetchEvents(); // Revert on error
+    });
   }
 });
 </script>
